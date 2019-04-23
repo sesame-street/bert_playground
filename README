@@ -1,0 +1,12 @@
+## bert_max_doc_str_max_str_clean_doc_noise_para
+	Document level string normalization model. paragraph noisy label and doc clean label.
+
+## bert_max_doc_str_max_str_clean_doc_noise_doc
+	Document level string normalization model. doc noisy label and doc clean label.
+
+## bert_max_doc_str_max_str_pos_clean_doc_noise_doc
+	Document level model position model, max position of the max answer string.
+	Clean and noise labels on doc-level.
+
+## train_eval_steps
+	Steps for carrying out training and evaluation.
