@@ -2577,39 +2577,35 @@ class DocQAModel(object):
                     best_answer_position_masks
                 )
 
+            def single_doc_logits(logits):
+                return tf.reshape(logits, [1, -1])
+
             start_loss, end_loss = 0.0, 0.0
             if FLAGS.marginalize:
                 tf.logging.info('Using margmalized loss for training')
                 if FLAGS.label_cleaning:
                     tf.logging.info('Performing label cleaning for training')
                     start_loss += compute_marginalized_loss(
-                        start_logits,
-                        cleaned_start_logits,
-                        axis=None
+                        single_doc_logits(start_logits),
+                        single_doc_logits(cleaned_start_logits)
                     )
                     end_loss += compute_marginalized_loss(
-                        end_logits,
-                        cleaned_end_logits,
-                        axis=None
+                        single_doc_logits(end_logits),
+                        single_doc_logits(cleaned_end_logits)
                     )
 
                 if FLAGS.local_obj_alpha > 0.0:
                     start_loss += compute_marginalized_loss(
-                        start_logits,
-                        doc_masked_start_logits,
-                        axis=None
+                        single_doc_logits(start_logits),
+                        single_doc_logits(doc_masked_start_logits)
                     ) * FLAGS.local_obj_alpha
                     end_loss += compute_marginalized_loss(
-                        end_logits,
-                        doc_masked_end_logits,
-                        axis=None
+                        single_doc_logits(end_logits),
+                        single_doc_logits(doc_masked_end_logits)
                     ) * FLAGS.local_obj_alpha
 
             elif FLAGS.posterior_distillation:
                 tf.logging.info('Using PD loss for training')
-
-                def single_doc_logits(logits):
-                    return tf.reshape(logits, [1, -1])
 
                 if FLAGS.label_cleaning:
                     tf.logging.info('Performing label cleaning for training')
@@ -2771,6 +2767,10 @@ class InputFeatureContainer(object):
         if self.shuffle_data:
             shuffler = self.rng.shuffle
 
+        def is_valid_answer_doc(answer_indices):
+            """Checks whether the document has at least one valid answer."""
+            return any(map(lambda x: x > 0, answer_indices))
+
         with tf.gfile.Open(self.feature_filename, mode='r') as fin:
             for _, file_chunk in itertools.groupby(
                     fin, key=group_key_func(chunk_size)):
@@ -2821,9 +2821,10 @@ class InputFeatureContainer(object):
                                     feature.position_mask)
                                 answer_index_list.append(
                                     feature.answer_index_list)
-                                if any([ans_ind > 0
-                                        for ans_ind in feature.answer_index_list
-                                        ]):
+
+                                # Answer index 0 is reserved for null.
+                                if is_valid_answer_doc(
+                                        feature.answer_index_list):
                                     has_answer = True
 
                             num_sample += 1
